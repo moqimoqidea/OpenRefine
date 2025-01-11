@@ -33,15 +33,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.importers;
 
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.input.CharSequenceReader;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -50,10 +56,8 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import com.google.refine.model.Project;
 import com.google.refine.util.ParsingUtilities;
-
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertFalse;
 
 public class SeparatorBasedImporterTests extends ImporterTest {
 
@@ -89,16 +93,14 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -115,15 +117,12 @@ public class SeparatorBasedImporterTests extends ImporterTest {
             Assert.fail("Exception during file parse", e);
         }
 
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -133,22 +132,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3\n" +
                 "data1" + inputSeparator + "234" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, true, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertTrue(project.rows.get(0).cells.get(1).value instanceof Long);
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, Long.parseLong("234"));
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 1, true, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", 234L, "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -157,21 +149,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = "data1" + inputSeparator + "data2" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "Column 1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "Column 2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "Column 3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 0, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -180,18 +166,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1 " + inputSeparator + " 3.4 " + inputSeparator + " data3 ";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, " data1 ");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, " 3.4 ");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, " data3 ");
+        prepareOptions(sep, -1, 0, 0, 0, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { " data1 ", " 3.4 ", " data3 " },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -200,18 +183,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1" + inputSeparator + " 12" + inputSeparator + " data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, true, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, " data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, 12L);
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, " data3");
+        prepareOptions(sep, -1, 0, 0, 0, true, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { " data1", 12L, " data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -220,18 +200,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1 " + inputSeparator + " 3.4 " + inputSeparator + " data3 ";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, false, false, true);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "3.4");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 0, false, false, true);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { "data1", "3.4", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -240,18 +217,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1 " + inputSeparator + " 3.4 " + inputSeparator + " data3 ";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, false, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, " data1 ");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, " 3.4 ");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, " data3 ");
+        prepareOptions(sep, -1, 0, 0, 0, false, true, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { " data1 ", " 3.4 ", " data3 " },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -260,18 +234,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1 " + inputSeparator + " 3.4 " + inputSeparator + " data3 ";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, true, false, true);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, Double.parseDouble("3.4"));
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 0, true, false, true);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { "data1", 3.4, "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -280,18 +251,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = " data1" + inputSeparator + inputSeparator + " data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, true, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, " data1");
-        Assert.assertNull(project.rows.get(0).cells.get(1));
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, " data3");
+        prepareOptions(sep, -1, 0, 0, 0, true, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { " data1", null, " data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -302,21 +270,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "sub1" + inputSeparator + "sub2" + inputSeparator + "sub3\n" +
                 "data1" + inputSeparator + "data2" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 2, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1 sub1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2 sub2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3 sub3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 2, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1 sub1", "col2 sub2", "col3 sub3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -327,27 +289,48 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "data1" + inputSeparator + "data2" + inputSeparator + "data3" + inputSeparator + "data4" + inputSeparator + "data5"
                 + inputSeparator + "data6";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3", numberedColumn(4), numberedColumn(5), numberedColumn(6) },
+                new Serializable[][] {
+                        { "data1", "data2", "data3", "data4", "data5", "data6" },
+                });
+        assertProjectEquals(project, expectedProject);
+    }
+
+    @Test(dataProvider = "CSV-TSV-AutoDetermine")
+    public void readManyColumns(String sep) {
+        // create input
+        int width = 16 * 1024; // Excel supports 16K columns max, so let's test that
+        String inputSeparator = sep == null ? "\t" : sep;
+        StringBuilder input = new StringBuilder();
+        String[] colNames = new String[width];
+        for (int i = 0; i < width; i++) {
+            String name = "col" + (i + 1);
+            input.append(name + inputSeparator);
+            colNames[i] = name;
         }
-        Assert.assertEquals(project.columnModel.columns.size(), 6);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.columnModel.columns.get(3).getName(), "Column 4");
-        Assert.assertEquals(project.columnModel.columns.get(4).getName(), "Column 5");
-        Assert.assertEquals(project.columnModel.columns.get(5).getName(), "Column 6");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 6);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
-        Assert.assertEquals(project.rows.get(0).cells.get(3).value, "data4");
-        Assert.assertEquals(project.rows.get(0).cells.get(4).value, "data5");
-        Assert.assertEquals(project.rows.get(0).cells.get(5).value, "data6");
+        input = input.deleteCharAt(input.length() - 1); // we don't need the last separator
+        input.append('\n');
+        String[] data = new String[width];
+        for (int i = 0; i < width; i++) {
+            String value = "data" + (i + 1);
+            input.append(value + inputSeparator);
+            data[i] = value;
+        }
+        input = input.deleteCharAt(input.length() - 1); // we don't need the last separator
+
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new CharSequenceReader(input));
+
+        Project expectedProject = createProject(
+                colNames,
+                new Serializable[][] {
+                        data,
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -357,20 +340,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3\n" +
                 "\"\"\"To Be\"\" is often followed by \"\"or not To Be\"\"\"" + inputSeparator + "data2";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 2);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "\"To Be\" is often followed by \"or not To Be\"");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "\"To Be\" is often followed by \"or not To Be\"", "data2", null },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -381,21 +359,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "col1" + inputSeparator + "col2" + inputSeparator + "col3\n" +
                 "data1" + inputSeparator + "data2" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 0, 1, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 1, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -406,21 +378,35 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "skip1\n" +
                 "data1" + inputSeparator + "data2" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 1, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 1, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
+    }
+
+    @Test(dataProvider = "CSV-TSV-AutoDetermine")
+    public void readCRLF(String sep) {
+        // create input
+        String inputSeparator = sep == null ? "\t" : sep;
+        String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3\r\n"
+                + "data1" + inputSeparator + "data2" + inputSeparator + "data3\r\n"
+                + "row2data1" + inputSeparator + "row2data2" + inputSeparator + "row2data3\r\n";
+
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                        { "row2data1", "row2data2", "row2data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -435,21 +421,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "skip1\n" +
                 "data1" + inputSeparator + "data2" + inputSeparator + "data3";
 
-        try {
-            prepareOptions(sep, -1, 1, 3, 2, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1 sub1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2 sub2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3 sub3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 1, 3, 2, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1 sub1", "col2 sub2", "col3 sub3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -464,30 +444,20 @@ public class SeparatorBasedImporterTests extends ImporterTest {
                 "skip1\n" +
                 "skip2\n" +
                 "data-row1-cell1" + inputSeparator + "data-row1-cell2" + inputSeparator + "data-row1-cell3\n" +
-                "data-row2-cell1" + inputSeparator + "data-row2-cell2" + inputSeparator + "\n" + // missing last data
-                                                                                                 // point of this row on
-                                                                                                 // purpose
+                // the last data point of the row below is skipped on purpose
+                "data-row2-cell1" + inputSeparator + "data-row2-cell2" + inputSeparator + "\n" +
                 "data-row3-cell1" + inputSeparator + "data-row3-cell2" + inputSeparator + "data-row1-cell3";
 
-        try {
-            prepareOptions(sep, 2, 2, 3, 2, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1 sub1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2 sub2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3 sub3");
-        Assert.assertEquals(project.rows.size(), 2);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data-row1-cell1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data-row1-cell2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data-row1-cell3");
-        Assert.assertEquals(project.rows.get(1).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(1).cells.get(0).value, "data-row2-cell1");
-        Assert.assertEquals(project.rows.get(1).cells.get(1).value, "data-row2-cell2");
-        Assert.assertNull(project.rows.get(1).cells.get(2));
+        prepareOptions(sep, 2, 2, 3, 2, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1 sub1", "col2 sub2", "col3 sub3" },
+                new Serializable[][] {
+                        { "data-row1-cell1", "data-row1-cell2", "data-row1-cell3" },
+                        { "data-row2-cell1", "data-row2-cell2", null },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -495,18 +465,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         // create input
         String inputSeparator = sep == null ? "\t" : sep;
         String input = "data1" + inputSeparator + "data2\"" + inputSeparator + "data3" + inputSeparator + "data4";
-        try {
-            prepareOptions(sep, -1, 0, 0, 0, false, true);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 4);
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 4);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 0, false, true);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3), numberedColumn(4) },
+                new Serializable[][] {
+                        { "data1", "data2\"", "data3", "data4" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -516,20 +483,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3\n" +
                 "\"\"\"To\n Be\"\" is often followed by \"\"or not To\n Be\"\"\"" + inputSeparator + "data2";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 2);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "\"To\n Be\" is often followed by \"or not To\n Be\"");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "\"To\n Be\" is often followed by \"or not To\n Be\"", "data2", null },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(groups = {}, dataProvider = "CSV-TSV-AutoDetermine")
@@ -539,20 +501,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String input = "col1" + inputSeparator + "col2" + inputSeparator + "col3\n" +
                 "\"A line with many \n\n\n\n\n empty lines\"" + inputSeparator + "data2";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 2);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "A line with many \n\n\n\n\n empty lines");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
+        prepareOptions(sep, -1, 0, 0, 1, false, false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "A line with many \n\n\n\n\n empty lines", "data2", null },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -562,22 +519,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String input = "'col1'" + inputSeparator + "'col2'" + inputSeparator + "'col3'\n" +
                 "'data1'" + inputSeparator + "'data2'" + inputSeparator + "'data3'";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false, "'");
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
+        prepareOptions(sep, -1, 0, 0, 1, false, false, "'");
+        parseOneFile(SUT, new StringReader(input));
 
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test(dataProvider = "CSV-TSV-AutoDetermine")
@@ -586,19 +536,15 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         String inputSeparator = sep == null ? "\t" : sep;
         String input = "data1" + inputSeparator + "data2" + inputSeparator + "data3\n";
 
-        try {
-            prepareOptions(sep, -1, 0, 0, 1, false, false, "\"", "[\"col1\",\"col2\",\"col3\"]", false);
-            parseOneFile(SUT, new StringReader(input));
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-        Assert.assertEquals(project.columnModel.columns.size(), 3);
-        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "col1");
-        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "col2");
-        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "col3");
-        Assert.assertEquals(project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals(project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals(project.rows.get(0).cells.get(2).value, "data3");
+        prepareOptions(sep, -1, 0, 0, 1, false, false, "\"", "[\"col1\",\"col2\",\"col3\"]", false);
+        parseOneFile(SUT, new StringReader(input));
+
+        Project expectedProject = createProject(
+                new String[] { "col1", "col2", "col3" },
+                new Serializable[][] {
+                        { "data1", "data2", "data3" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     // ---------------------read tests------------------------
@@ -607,18 +553,14 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         StringReader reader = new StringReader(SAMPLE_ROW);
 
         prepareOptions(",", -1, 0, 0, 0, true, true);
+        parseOneFile(SUT, reader);
 
-        try {
-            parseOneFile(SUT, reader);
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
-
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 3);
-        Assert.assertEquals((String) project.rows.get(0).cells.get(0).value, "NDB_No");
-        Assert.assertEquals((String) project.rows.get(0).cells.get(1).value, "Shrt_Desc");
-        Assert.assertEquals((String) project.rows.get(0).cells.get(2).value, "Water");
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3) },
+                new Serializable[][] {
+                        { "NDB_No", "Shrt_Desc", "Water" },
+                });
+        assertProjectEquals(project, expectedProject);
     }
 
     @Test
@@ -627,19 +569,59 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         StringReader reader = new StringReader(input);
 
         prepareOptions(",", -1, 0, 0, 0, true, true);
+        parseOneFile(SUT, reader);
 
-        try {
-            parseOneFile(SUT, reader);
-        } catch (Exception e) {
-            Assert.fail("Exception during file parse", e);
-        }
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3), numberedColumn(4) },
+                new Serializable[][] {
+                        { "data1", "data2\"", "data3", "data4" },
+                });
+        assertProjectEquals(project, expectedProject);
+    }
 
-        Assert.assertEquals(project.rows.size(), 1);
-        Assert.assertEquals(project.rows.get(0).cells.size(), 4);
-        Assert.assertEquals((String) project.rows.get(0).cells.get(0).value, "data1");
-        Assert.assertEquals((String) project.rows.get(0).cells.get(1).value, "data2");
-        Assert.assertEquals((String) project.rows.get(0).cells.get(2).value, "data3");
-        Assert.assertEquals((String) project.rows.get(0).cells.get(3).value, "data4");
+    @Test
+    public void readTsvWithEmbeddedEscapes() {
+        // Be careful of whitespace at field boundaries which will get trimmed by trimWhitespace = true
+        // Also take care to make sure backslashes are escaped correctly for Java
+        String input = "da\\rta1\tdat\\ta2\tdata3\tdat\\na4";
+        StringReader reader = new StringReader(input);
+
+        prepareOptions("\t", -1, 0, 0, 0, false, true);
+
+        parseOneFile(SUT, reader);
+
+        Project expectedProject = createProject(
+                new String[] { numberedColumn(1), numberedColumn(2), numberedColumn(3), numberedColumn(4) },
+                new Serializable[][] {
+                        { "da\rta1", "dat\ta2", "data3", "dat\na4" },
+                });
+        assertProjectEquals(project, expectedProject);
+    }
+
+    @Test(dataProvider = "CSV-TSV-AutoDetermine")
+    public void testDeleteEmptyColumns(String sep) {
+        // Set up blank column in project
+        String inputSeparator = sep == null ? "\t" : sep;
+        String input = "data1" + inputSeparator + inputSeparator + "data2\"" + inputSeparator + inputSeparator + "data3" + inputSeparator
+                + "\n" +
+                "data4" + inputSeparator + inputSeparator + "data5\"" + inputSeparator + inputSeparator + "data6";
+        ArrayNode columnNames = ParsingUtilities.mapper.createArrayNode();
+        columnNames.add("Col 1");
+        columnNames.add("Col 2");
+        columnNames.add("Col 3");
+        columnNames.add("Col 4");
+        columnNames.add("Col 5");
+
+        // This will mock the situation of deleting empty columns(col2&col4)
+        prepareOptions(sep, -1, 0, 0, 1, false, true);
+        whenGetBooleanOption("storeBlankColumns", options, false);
+        whenGetArrayOption("columnNames", options, columnNames);
+        parseOneFile(SUT, new StringReader(input));
+
+        Assert.assertEquals(project.columnModel.columns.size(), 3);
+        Assert.assertEquals(project.columnModel.columns.get(0).getName(), "Col 1");
+        Assert.assertEquals(project.columnModel.columns.get(1).getName(), "Col 3");
+        Assert.assertEquals(project.columnModel.columns.get(2).getName(), "Col 5");
     }
 
     // ---------------------guess separators------------------------
@@ -648,7 +630,7 @@ public class SeparatorBasedImporterTests extends ImporterTest {
     public void testThatDefaultGuessIsATabSeparatorAndDefaultProcessQuotesToFalse() {
         ObjectNode options = SUT.createParserUIInitializationData(
                 job, new LinkedList<>(), "text/json");
-        assertEquals("\\t", options.get("separator").textValue());
+        assertEquals(options.get("separator").textValue(), "\\t");
         assertFalse(options.get("processQuotes").asBoolean());
     }
 
@@ -657,7 +639,7 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         List<ObjectNode> fileRecords = prepareFileRecords("food.small.csv");
         ObjectNode options = SUT.createParserUIInitializationData(
                 job, fileRecords, "text/csv");
-        assertEquals(",", options.get("separator").textValue());
+        assertEquals(options.get("separator").textValue(), ",");
     }
 
     @Test
@@ -665,7 +647,7 @@ public class SeparatorBasedImporterTests extends ImporterTest {
         List<ObjectNode> fileRecords = prepareFileRecords("movies-condensed.tsv");
         ObjectNode options = SUT.createParserUIInitializationData(
                 job, fileRecords, "text/tsv");
-        assertEquals("\\t", options.get("separator").textValue());
+        assertEquals(options.get("separator").textValue(), "\\t");
         assertFalse(options.get("processQuotes").asBoolean());
     }
 

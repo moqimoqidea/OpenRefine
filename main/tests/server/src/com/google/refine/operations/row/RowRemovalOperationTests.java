@@ -28,24 +28,36 @@
 package com.google.refine.operations.row;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
 import com.google.refine.RefineTest;
+import com.google.refine.browsing.DecoratedValue;
 import com.google.refine.browsing.Engine;
 import com.google.refine.browsing.EngineConfig;
 import com.google.refine.browsing.RowVisitor;
+import com.google.refine.browsing.facets.ListFacet.ListFacetConfig;
+import com.google.refine.expr.MetaParser;
 import com.google.refine.expr.functions.FacetCount;
 import com.google.refine.grel.Function;
+import com.google.refine.grel.Parser;
 import com.google.refine.history.HistoryEntry;
 import com.google.refine.model.Cell;
 import com.google.refine.model.ModelException;
 import com.google.refine.model.Project;
 import com.google.refine.model.Row;
 import com.google.refine.operations.EngineDependentOperation;
+import com.google.refine.operations.OperationDescription;
 import com.google.refine.operations.OperationRegistry;
 import com.google.refine.util.ParsingUtilities;
 import com.google.refine.util.TestUtils;
@@ -67,45 +79,62 @@ public class RowRemovalOperationTests extends RefineTest {
     }
 
     // dependencies
-    Project project;
+    Project projectIssue567;
     Properties options;
     EngineConfig engine_config;
     Engine engine;
     Properties bindings;
 
+    Project project;
+    ListFacetConfig facet;
+
     @Test
     public void serializeRowRemovalOperation() throws IOException {
         String json = "{"
                 + "\"op\":\"core/row-removal\","
-                + "\"description\":\"Remove rows\","
+                + "\"description\":" + new TextNode(OperationDescription.row_removal_brief()).toString() + ","
                 + "\"engineConfig\":{\"mode\":\"row-based\",\"facets\":[]}}";
         TestUtils.isSerializedTo(ParsingUtilities.mapper.readValue(json, RowRemovalOperation.class), json);
     }
 
     @BeforeMethod
     public void SetUp() throws IOException, ModelException {
-        project = createProjectWithColumns("RowRemovalOperationTests", "Column A");
+        MetaParser.registerLanguageParser("grel", "GREL", Parser.grelParser, "value");
+        projectIssue567 = createProjectWithColumns("RowRemovalOperationTests", "Column A");
+        project = createProject(new String[] { "foo", "bar", "hello" },
+                new Serializable[][] {
+                        { "a", "b", "c" },
+                        { "", null, "d" },
+                        { "e", null, "f" },
+                        { null, "g", "h" },
+                        { null, "", "i" }
+                });
 
-        engine = new Engine(project);
-        engine_config = EngineConfig.reconstruct(ENGINE_JSON_DUPLICATES);
+        engine = new Engine(projectIssue567);
+        engine_config = EngineConfig.deserialize(ENGINE_JSON_DUPLICATES);
         engine.initializeFromConfig(engine_config);
         engine.setMode(Engine.Mode.RowBased);
 
         bindings = new Properties();
-        bindings.put("project", project);
+        bindings.put("project", projectIssue567);
 
+        facet = new ListFacetConfig();
+        facet.name = "hello";
+        facet.expression = "grel:value";
+        facet.columnName = "hello";
     }
 
     @AfterMethod
     public void TearDown() {
-        project = null;
+        MetaParser.unregisterLanguageParser("grel");
+        projectIssue567 = null;
         engine = null;
         bindings = null;
     }
 
     private void checkRowCounts(int all, int filtered) {
-        engine.getAllRows().accept(project, new CountVerificationRowVisitor(all));
-        engine.getAllFilteredRows().accept(project, new CountVerificationRowVisitor(filtered));
+        engine.getAllRows().accept(projectIssue567, new CountVerificationRowVisitor(all));
+        engine.getAllFilteredRows().accept(projectIssue567, new CountVerificationRowVisitor(filtered));
 
         Function fc = new FacetCount();
         Integer count = (Integer) fc.call(bindings, new Object[] { "a", "value", "Column A" });
@@ -123,15 +152,15 @@ public class RowRemovalOperationTests extends RefineTest {
         for (int i = 0; i < 5; i++) {
             Row row = new Row(5);
             row.setCell(0, new Cell(i < 4 ? "a" : "b", null));
-            project.rows.add(row);
+            projectIssue567.rows.add(row);
         }
         checkRowCounts(5, 4);
 
         EngineDependentOperation op = new RowRemovalOperation(engine_config);
-        HistoryEntry historyEntry = op.createProcess(project, options).performImmediate();
+        HistoryEntry historyEntry = op.createProcess(projectIssue567, options).performImmediate();
         checkRowCounts(1, 0);
 
-        historyEntry.revert(project);
+        historyEntry.revert(projectIssue567);
         checkRowCounts(5, 4);
     }
 
@@ -159,6 +188,44 @@ public class RowRemovalOperationTests extends RefineTest {
         public void end(Project project) {
             Assert.assertEquals(count, target);
         }
+    }
+
+    @Test
+    public void testRemoveRows() throws Exception {
+        facet.selection = Arrays.asList(
+                new DecoratedValue("h", "h"),
+                new DecoratedValue("i", "i"));
+        EngineConfig engineConfig = new EngineConfig(Arrays.asList(facet), Engine.Mode.RowBased);
+        RowRemovalOperation operation = new RowRemovalOperation(engineConfig);
+        runOperation(operation, project);
+
+        Project expected = createProject(new String[] { "foo", "bar", "hello" },
+                new Serializable[][] {
+                        { "a", "b", "c" },
+                        { "", null, "d" },
+                        { "e", null, "f" }
+                });
+
+        assertProjectEquals(project, expected);
+    }
+
+    @Test
+    public void testRemoveRecords() throws Exception {
+        facet.selection = Arrays.asList(
+                new DecoratedValue("h", "h"),
+                new DecoratedValue("i", "i"));
+        EngineConfig engineConfig = new EngineConfig(Arrays.asList(facet), Engine.Mode.RecordBased);
+        RowRemovalOperation operation = new RowRemovalOperation(engineConfig);
+
+        runOperation(operation, project);
+
+        Project expected = createProject(new String[] { "foo", "bar", "hello" },
+                new Serializable[][] {
+                        { "a", "b", "c" },
+                        { "", null, "d" }
+                });
+
+        assertProjectEquals(project, expected);
     }
 
 }

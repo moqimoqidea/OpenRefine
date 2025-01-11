@@ -57,7 +57,7 @@ The Release Manager is responsible to
 * Coordinate with the community to select which issues and pull requests are part of new releases
 * Prepare and coordinate publishing new releases
 
-The current Release Manager is [Antonin Delpeuch](https://github.com/wetneb).
+The current Release Manager is [Tom Morris](https://github.com/tfmorris).
 
 ### Steering Committee
 The steering committee oversees the general direction of the project and initiates connections and collaborations with other organizations and projects.
@@ -90,15 +90,15 @@ Advisory Committee members:
 * Can be part of the Admin team for the project on GitHub
 
 #### Conflict of Interest
-In the event of any conflict of interest (a Committee Member, their family member, or someone with whom the Committee Member has a close academic or employment relationship is involved in a decision), the Committee Member must immediately notify other Committee Members. The Committee Member will be asked to recuse themselves from ongoing conversations, and decision process regarding the Transaction.  
+In the event of any conflict of interest (a Committee Member, their family member, or someone with whom the Committee Member has a close academic or employment relationship is involved in a decision), the Committee Member must immediately notify other Committee Members. The Committee Members will be asked to recuse themselves from ongoing conversations and decision processes regarding the Transaction.  
 
 #### Current list of Advisory Committee members
 * Jan Ainali
-* Antonin Delpeuch
-* [Open Position]
+* Julie Faure-Lacroix
+* Esther Jackson
 
 ### Project Manager
-OpenRefine's Project Manager (paid position) works closely with OpenRefine’s advisory and steering committees, and with its communities of users and contributors.
+OpenRefine's Project Manager (paid position) works closely with OpenRefine’s advisory and steering committees and with its communities of users and contributors.
 
 The Project Manager:
 * Helps to improve OpenRefine's governance and community diversity
