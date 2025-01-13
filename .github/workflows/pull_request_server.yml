@@ -1,16 +1,14 @@
-name: CI
+name: server CI
 
 on:
   pull_request:
     paths:
+      - '.github/workflows/pull_request_server.yml'
       - 'benchmark/**'
       - 'conf/**'
       - 'extensions/database/src/**'
       - 'extensions/database/tests/**'
       - 'extensions/database/pom.xml'
-      - 'extensions/gdata/src/**'
-      - 'extensions/gdata/tests/**'
-      - 'extensions/gdata/pom.xml'
       - 'extensions/jython/src/**'
       - 'extensions/jython/tests/**'
       - 'extensions/jython/pom.xml'
@@ -31,6 +29,7 @@ on:
       - 'main/tests/data/**'
       - 'main/tests/server/**'
       - 'main/pom.xml'
+      - 'modules/**'
       - 'packaging/**'
       - 'server/**'
       - 'pom.xml'
@@ -47,7 +46,7 @@ jobs:
   linux_server_tests:
     strategy:
       matrix:
-        java: [ 11, 20 ]
+        java: [ 21 ]
 
     runs-on: ubuntu-latest
 
@@ -82,10 +81,10 @@ jobs:
         run: |
           echo "COVERALLS_TOKEN=$(echo eUVUVGRHOFJhQm9GMFJBYTNibjVhcWFEblpac1lmMlE3Cg== | base64 -d)" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Java ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
@@ -94,7 +93,7 @@ jobs:
       - name: Check Java linting
         id: java_linting
         run: |
-          mvn -B compile formatter:validate javadoc:javadoc -Ddoclint=all
+          mvn -T 4 -B compile test-compile formatter:validate impsort:check javadoc:javadoc -Ddoclint=html,syntax,accessibility,reference
 
       - name: Configure connections to databases
         id: configure_db_connections
@@ -110,29 +109,90 @@ jobs:
           PGPASSWORD: postgres
 
       - name: Build and test with Maven
-        run: mvn -B jacoco:prepare-agent test
+        run: mvn -T 4 -B jacoco:prepare-agent test jacoco:report
 
-      - name: Submit test coverage to Coveralls
-        run: |
-          mvn jacoco:report coveralls:report -DrepoToken=${{ env.COVERALLS_TOKEN }} -DpullRequest=${{ github.event.number }} -DfailOnServiceError=false
+      - name: Coveralls main
+        uses: coverallsapp/github-action@v2
+        with:
+          base-path: main/src
+          files: main/target/site/jacoco/jacoco.xml
+          format: jacoco
+          flag-name: Java-${{ matrix.java }}-main
+          fail-on-error: false
+          parallel: true
+
+      - name: Coveralls database
+        uses: coverallsapp/github-action@v2
+        with:
+          base-path: extensions/database/src
+          files: extensions/database/target/site/jacoco/jacoco.xml
+          github-token: ${{ env.COVERALLS_TOKEN }}
+          format: jacoco
+          flag-name: Java-${{ matrix.java }}-database
+          fail-on-error: false
+          parallel: true
+
+      - name: Coveralls phonetic
+        uses: coverallsapp/github-action@v2
+        with:
+          base-path: extensions/phonetic/src
+          files: extensions/phonetic/target/site/jacoco/jacoco.xml
+          github-token: ${{ env.COVERALLS_TOKEN }}
+          format: jacoco
+          flag-name: Java-${{ matrix.java }}-phonetic
+          fail-on-error: false
+          parallel: true
+
+      - name: Coveralls wikibase
+        uses: coverallsapp/github-action@v2
+        with:
+          base-path: extensions/wikibase/src
+          files: extensions/wikibase/target/site/jacoco/jacoco.xml
+          github-token: ${{ env.COVERALLS_TOKEN }}
+          format: jacoco
+          flag-name: Java-${{ matrix.java }}-wikibase
+          fail-on-error: false
+          parallel: true
+
+      - name: Coveralls jython
+        uses: coverallsapp/github-action@v2
+        with:
+          base-path: extensions/jython/src
+          files: extensions/jython/target/site/jacoco/jacoco.xml
+          github-token: ${{ env.COVERALLS_TOKEN }}
+          format: jacoco
+          flag-name: Java-${{ matrix.java }}-jython
+          fail-on-error: false
+          parallel: true
 
   windows_server_tests:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Java 20
-        uses: actions/setup-java@v3
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 20
+          java-version: 21
           cache: 'maven'
 
       - name: Check Java linting
         id: java_linting
         run: |
-          mvn -B formatter:validate
+          mvn -B formatter:validate impsort:check
 
       - name: Build and test with Maven
-        run: mvn -B jacoco:prepare-agent test
+        run: mvn -T 4 -B jacoco:prepare-agent test
+
+  finish:
+    needs: linux_server_tests
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      # Only really needed if we're testing in separate jobs (e.g. multiple Java versions)
+      - name: Close parallel build
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true

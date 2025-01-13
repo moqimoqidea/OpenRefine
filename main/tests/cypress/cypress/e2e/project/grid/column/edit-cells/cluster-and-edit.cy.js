@@ -45,6 +45,50 @@ describe(__filename, function () {
         });
     });
 
+    it('Test the clustering using custom function', function () {
+        cy.loadAndVisitProject(fixture);
+        cy.columnActionClick('location', ['Edit cells', 'Cluster and edit']);
+    
+        cy.get('.dialog-body button[bind="manageFunctionsBtn"]').click();
+        cy.get('#add-new-functions').click();
+        
+        cy.get('#expressionPreviewTextareaId').should('be.visible').type('value.length()');
+        cy.get('input[bind="functionNameInput"]').should('be.visible').type('length of the cell');
+        cy.get('button[bind="okButton"]').click();
+        
+        cy.get('.main-text').should('have.text', 'length of the cell');
+        cy.get(".sub-text").should('have.text',"value.length()")
+
+        cy.get('.dialog-footer').find('button').contains('OK').click();
+
+        cy.get('#keyingFunctionSelectorId').select('UserDefinedKeyer');
+        cy.get('#keyingFunctionSelectorId option:selected').should('have.text', 'length of the cell')
+
+        cy.get('.dialog-container').within(() => {
+            // check lines to be merged
+            cy.get(
+                '.clustering-dialog-entry-table tr.odd input[type="checkbox"]'
+            ).check();
+
+            // enter a new cell value
+            cy.get('.clustering-dialog-entry-table tr.odd input[type="text"]').type(
+                'testing'
+            );
+
+            cy.get('.dialog-footer button[bind="applyCloseButton"]').click();
+        });
+
+        cy.assertGridEquals([
+            ['location'],
+            ['GRAVEL HILLtesting'],
+            ['SWABYS   HOME'],
+            ['BALLARDS river'],
+            ['BALLARDS River'],
+            ['MOUNT ZION'],
+            ['GRAVEL HILLtesting'],
+        ]);
+    });
+    
     it('Test the different clustering options for rendering and expected inputs', function () {
         cy.loadAndVisitProject(fixture);
         cy.columnActionClick('location', ['Edit cells', 'Cluster and edit']);
@@ -106,7 +150,7 @@ describe(__filename, function () {
         });
     });
 
-    it('Merge Select & Close', function () {
+    it('Merge Select & Close without excluding choices', function () {
         cy.loadAndVisitProject(fixture);
         cy.columnActionClick('location', ['Edit cells', 'Cluster and edit']);
         cy.get('#autoId').check();
@@ -131,6 +175,39 @@ describe(__filename, function () {
             ['SWABYS   HOME'],
             ['BALLARDS Rivertesting'],
             ['BALLARDS Rivertesting'],
+            ['MOUNT ZION'],
+            ['GRAVEL HILL'],
+        ]);
+    });
+
+    it('Merge Select & Close with excluding choices', function () {
+        cy.loadAndVisitProject(fixture);
+        cy.columnActionClick('location', ['Edit cells', 'Cluster and edit']);
+        cy.get('#autoId').check();
+
+        cy.get('.dialog-container').within(() => {
+            // check lines to be merged
+            cy.get(
+                '.clustering-dialog-entry-table tr.odd input[type="checkbox"]'
+            ).check();
+
+            // exclude the first choice
+            cy.get('#Checkbox0_Choice0').uncheck();
+            
+            // enter a new cell value
+            cy.get('.clustering-dialog-entry-table tr.odd input[type="text"]').type(
+                'testing'
+            );
+
+            cy.get('.dialog-footer button[bind="applyCloseButton"]').click();
+        });
+
+        cy.assertGridEquals([
+            ['location'],
+            ['SWABYS HOME'],
+            ['SWABYS   HOME'],
+            ['BALLARDS Rivertesting'],
+            ['BALLARDS River'],
             ['MOUNT ZION'],
             ['GRAVEL HILL'],
         ]);
@@ -196,15 +273,15 @@ describe(__filename, function () {
         cy.get('#autoId').check();
 
         cy.get('.dialog-container').within(() => {
-            cy.get('.clustering-dialog-entry-table tr td:nth-child(3)').should(
+            cy.get('.clustering-dialog-entry-table tr td:nth-child(2)').should(
                 'to.contain',
                 'b ar'
             );
-            cy.get('.clustering-dialog-entry-table tr td:nth-child(3)').should(
+            cy.get('.clustering-dialog-entry-table tr td:nth-child(2)').should(
                 'to.contain',
                 'b  ar'
             );
-            cy.get('.clustering-dialog-entry-table tr td:nth-child(3)').should(
+            cy.get('.clustering-dialog-entry-table tr td:nth-child(2)').should(
                 'to.contain',
                 'b   ar'
             );

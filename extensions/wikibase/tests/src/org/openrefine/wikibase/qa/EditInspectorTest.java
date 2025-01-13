@@ -1,17 +1,18 @@
 
 package org.openrefine.wikibase.qa;
 
+import static org.testng.Assert.assertEquals;
+
+import org.testng.annotations.Test;
+
 import org.openrefine.wikibase.manifests.Manifest;
 import org.openrefine.wikibase.manifests.ManifestParser;
 import org.openrefine.wikibase.testing.TestingData;
-import org.testng.annotations.Test;
-
-import static org.testng.Assert.assertEquals;
 
 public class EditInspectorTest {
 
-    private static final int scrutinizerCount = 23;
-    private static final int scrutinizerNotDependingOnPropertyConstraintCount = 8;
+    private static final int scrutinizerCount = 24;
+    private static final int scrutinizerNotDependingOnPropertyConstraintCount = 9;
 
     @Test
     public void testNoScrutinizerSkipped() throws Exception {
