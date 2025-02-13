@@ -3,13 +3,14 @@ package com.google.refine.importing;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.IOException;
 
-import org.testng.annotations.Test;
-
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.testng.annotations.Test;
+
 import com.google.refine.util.JSONUtilities;
 import com.google.refine.util.ParsingUtilities;
 
@@ -51,6 +52,8 @@ public class EncodingGuesserTests {
 
         checkEncoding("example-latin1.tsv", "windows-1252"); // close enough - these overlap a lot
         checkEncoding("example-utf8.tsv", "utf-8");
+        checkEncoding("example-utf16le-bom.tsv", "utf-16le");
+        checkEncoding("example-utf16be-bom.tsv", "utf-16be");
         checkEncoding("csv-with-bom.csv", "utf-8-bom");
     }
 

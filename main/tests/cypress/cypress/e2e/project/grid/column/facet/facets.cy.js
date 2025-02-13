@@ -3,21 +3,24 @@
  * It's using "text facet" as it is the most simple facet
  */
 
-const clickFacetAction = (text, action, setVisibility = false) => {
-  cy.getFacetContainer('Shrt_Desc')
-      .contains(text)
-      .parent()
-      .within(() => {
-        const elem = cy.contains(action);
-
-        if (setVisibility) {
-          elem.invoke('css', 'visibility', 'visible');
-        }
-        elem.click();
-        if (setVisibility) {
-          elem.invoke('css', 'visibility', 'hidden');
-        }
-      });
+/*
+   IMPORTANT: Any test reliant on Facet Actions (Edit,Include/Exclude) should wait >100 msec to ensure the event
+   handlers are setup, otherwise clicking on the action will do nothing.
+   Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+ */
+const clickFacetAction = (facetType, text, action) => {
+  cy.getFacetContainer(facetType)
+    .contains(text)
+    .parent()
+    .invoke('trigger', 'mouseenter'); // include/exclude not visible until we mouse over
+  // start a new chain after the trigger
+  cy.getFacetContainer(facetType)
+    .contains(text)
+    .siblings()
+    .get(".facet-choice-toggle")
+    .contains(action)
+    .should('have.css', 'visibility', 'visible') // partially occluded, so "be.visible" won't work
+    .click();
 };
 
 describe(__filename, function () {
@@ -219,20 +222,31 @@ describe(__filename, function () {
     cy.loadAndVisitProject('food.small');
     cy.columnActionClick('Shrt_Desc', ['Facet', 'Text facet']);
 
-    clickFacetAction('ALLSPICE,GROUND', 'include', true);
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
+    clickFacetAction('Shrt_Desc','ALLSPICE,GROUND', 'include');
     cy.getCell(0, 'Shrt_Desc').should('contain', 'ALLSPICE,GROUND');
     cy.get('#tool-panel').contains('1 matching rows');
 
-    clickFacetAction('ANISE SEED', 'include', true);
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
+    clickFacetAction('Shrt_Desc','ANISE SEED', 'include');
     cy.getCell(1, 'Shrt_Desc').should('contain', 'ANISE SEED');
     cy.get('#tool-panel').contains('2 matching rows');
 
-    clickFacetAction('BUTTER OIL,ANHYDROUS', 'include', true);
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
+    clickFacetAction('Shrt_Desc','BUTTER OIL,ANHYDROUS', 'include');
     cy.getCell(0, 'Shrt_Desc').should('contain', 'BUTTER OIL,ANHYDROUS');
     cy.get('#tool-panel').contains('3 matching rows');
 
-    cy.wait(100);
-    clickFacetAction('ALLSPICE,GROUND', 'exclude');
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
+    clickFacetAction('Shrt_Desc','ALLSPICE,GROUND', 'exclude');
     cy.get('#tool-panel').contains('2 matching rows');
   });
 
@@ -240,8 +254,11 @@ describe(__filename, function () {
     cy.loadAndVisitProject('food.small');
     cy.columnActionClick('Shrt_Desc', ['Facet', 'Text facet']);
 
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
     // do a basic facetting, expect 1 row
-    clickFacetAction('ALLSPICE,GROUND','include',true);
+    clickFacetAction('Shrt_Desc','ALLSPICE,GROUND','include');
     cy.getCell(0, 'Shrt_Desc').should('to.contain', 'ALLSPICE,GROUND');
     cy.get('#tool-panel').contains('1 matching rows');
 
@@ -264,8 +281,11 @@ describe(__filename, function () {
     cy.loadAndVisitProject('food.small');
     cy.columnActionClick('Shrt_Desc', ['Facet', 'Text facet']);
 
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
     // do a basic facetting, expect 1 row
-    clickFacetAction('ALLSPICE,GROUND','include',true);
+    clickFacetAction('Shrt_Desc','ALLSPICE,GROUND','include',true);
     cy.get('#tool-panel').contains('1 matching rows');
 
     // now reset, expect 199
@@ -308,7 +328,7 @@ describe(__filename, function () {
       .find('.facet-body-controls')
       .contains('Facet by choice counts')
       .click();
-
+    // TODO: This can be flaky, but not sure why. Not reproducible in isolated testing.
     cy.get(`#refine-tabs-facets .facets-container .facet-container#facet-1`)
       .should('exist')
       .contains('Shrt_Desc');
@@ -318,6 +338,10 @@ describe(__filename, function () {
     cy.loadAndVisitProject('food.small');
     cy.columnActionClick('Water', ['Facet', 'Text facet']);
 
+    // Wait to ensure action click handler is setup
+    // Ref:  window.setTimeout(wireEvents, 100); in list-facet.js
+    cy.wait(150);
+
     cy.get('div.facet-body-inner > div:nth-child(8)')
         .contains('15.87')
         .parent()
@@ -325,19 +349,19 @@ describe(__filename, function () {
           const elem = cy.contains('edit');
           elem.invoke('css', 'visibility', 'visible');
           elem.click();
-          elem.invoke('css', 'visibility', 'hidden');
-        });
+        })
+        .root().then(() => {
+          // Mass edit all cells that have Water = 15.87
+          cy.get('.data-table-cell-editor textarea').should('exist').type(50);
+          cy.get('.data-table-cell-editor button').contains('Apply').click();
 
-    // mass edit all cells that have Water = 15.87
-    cy.get('.data-table-cell-editor textarea').type(50);
-    cy.get('.data-table-cell-editor button').contains('Apply').click();
+          // Ensure rows have been modified
+          cy.getCell(0, 'Water').should('to.contain', 50);
+          cy.getCell(1, 'Water').should('to.contain', 50);
 
-    // ensure rows has been modified
-    cy.getCell(0, 'Water').should('to.contain', 50);
-    cy.getCell(1, 'Water').should('to.contain', 50);
-
-    // ensure modification is made only to the rows that had 15.87, not the others
-    cy.getCell(2, 'Water').should('to.contain', 0.24);
+          // Ensure modification is made only to the rows that had 15.87, not the others
+          cy.getCell(2, 'Water').should('to.contain', 0.24);
+      });
   });
 
   it('Test opening the clustering from a facet', function () {
@@ -354,27 +378,15 @@ describe(__filename, function () {
     );
   });
 
-  // // This test is unstable, mouseover behavior is unpredictable
-  // // This might be because the element is detached from the DOM in the middle
-  // // it('Test include/exlude toggle', function () {
-  // // 	cy.loadAndVisitProject('food.small');
-  // // 	cy.columnActionClick('NDB_No', ['Facet', 'Text facet']);
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"]').trigger('mouseover');
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"] a.facet-choice-toggle').contains('include').should('be.visible');
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"] a.facet-choice-toggle').click();
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"] a.facet-choice-toggle').contains('exclude');
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"] a.facet-choice-toggle').click();
-  // // 	cy.getFacetContainer('NDB_No').find('.facet-choice[choiceindex="0"] a.facet-choice-toggle').contains('include');
-  // // });
+  it('Test collapsing facet panels', function () {
+    cy.loadAndVisitProject('food.small');
+    cy.columnActionClick('NDB_No', ['Facet', 'Text facet']);
+    // ensure facet inner panel is visible
+    cy.get('#refine-tabs-facets .facets-container li:nth-child(1) .facet-body-inner').should('be.visible');
+    // collapse the panel
+    cy.get('#refine-tabs-facets .facets-container li:nth-child(1) a[bind="minimizeButton"]').click();
+    // Make sure the body is hidden
+    cy.get('#refine-tabs-facets .facets-container li:nth-child(1) .facet-body').should('not.be.visible');
+  });
 
-  // it('Test collapsing facet panels', function () {
-  // The following test does not work
-  // Because the facet panels uses soem weird CSS with overflow:hidden, Cypress can not detect it
-  // //// # cy.loadAndVisitProject('food.small');
-  // //// # cy.columnActionClick('NDB_No', ['Facet', 'Text facet']);
-  // //// # ensure facet inner panel is visible
-  // //// # cy.get('#refine-tabs-facets .facets-container li:nth-child(1) .facet-body-inner').should('be.visible');
-  // //// #collapse the panel
-  // //// # cy.get('#refine-tabs-facets .facets-container li:nth-child(1) a[bind="minimizeButton"]').click();
-  // ////
 });

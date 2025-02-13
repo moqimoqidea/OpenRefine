@@ -44,7 +44,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
 	        repeatCount: repeatCount
 	      },
 	      { expression: expression },
-	      { cellsChanged: true },
+	      { cellsChanged: true, rowIdsPreserved: true },
 	      callbacks
 	    );
 	  };
@@ -95,7 +95,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
           onError: $('input[name="create-column-dialog-onerror-choice"]:checked')[0].value
         },
         { expression: previewWidget.getExpression(true) },
-        { modelsChanged: true },
+        { modelsChanged: true, rowIdsPreserved: true, recordIdsPreserved: true },
         {
           onDone: function(o) {
             dismiss();
@@ -166,9 +166,9 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
           httpHeaders: JSON.stringify(elmts.setHttpHeadersContainer.find("input").serializeArray())
         },
         null,
-        { modelsChanged: true }
+        { modelsChanged: true, rowIdsPreserved: true, recordIdsPreserved: true },
+        { onDone: dismiss }
       );
-      dismiss();
     });
   };
 
@@ -206,7 +206,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
         columnName: column.name
       },
       null,
-      { modelsChanged: true }
+      { modelsChanged: true, rowIdsPreserved: true }
     );
   };
 
@@ -240,9 +240,20 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
               newColumnName: newColumnName
             },
             null,
-            {modelsChanged: true},
             {
-              onDone: function () {
+                modelsChanged: true,
+                rowIdsPreserved: true,
+                recordIdsPreserved: true,
+                engineConfig: ui.browsingEngine.getJSON(true), 
+            },
+            {
+              onDone: function (response) {
+                if (response.newEngineConfig !== undefined) {
+                  // updateLater is set to true as the update process for the operation
+                  // will also take care of updating the facets, so there is no need to
+                  // do it twice.
+                  ui.browsingEngine.setJSON(response.newEngineConfig, true);
+                }
                 dismiss();
               }
             }
@@ -261,7 +272,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
         index: index
       },
       null,
-      { modelsChanged: true }
+      { modelsChanged: true, rowIdsPreserved: true }
     );
   };
 
@@ -275,7 +286,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
             index: newidx
           },
           null,
-          { modelsChanged: true }
+          { modelsChanged: true, rowIdsPreserved: true }
       );
     }
   };
@@ -358,9 +369,9 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
         "split-column", 
         config,
         null,
-        { modelsChanged: true }
+        { modelsChanged: true },
+        { onDone: dismiss }
       );
-      dismiss();
     });
   }; 
   
@@ -399,7 +410,6 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
       // function called in a callback
       var deleteColumns = function() {
         if (deleteJoinedColumns) {
-          console.log (theProject);
           var columnsToKeep = theProject.columnModel.columns
           .map (function (col) {return col.name;})
           .filter (function(colName) {
@@ -412,7 +422,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
               "reorder-columns",
               null,
               { "columnNames" : JSON.stringify(columnsToKeep) }, 
-              { modelsChanged: true },
+              { modelsChanged: true, rowIdsPreserved: true },
               { includeEngine: false }
           );
         }
@@ -465,8 +475,8 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
           onError: onError
           },
           { expression: expression },
-          { modelsChanged: true },
-          { onFinallyDone: deleteColumns}
+          { modelsChanged: true, rowIdsPreserved: true, recordIdsPreserved: true },
+          { onDone: dismiss, onFinallyDone: deleteColumns}
         );
       } 
       else {
@@ -476,7 +486,7 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
             onError,
             repeat,
             repeatCount,
-            { onFinallyDone: deleteColumns});
+            { onDone: dismiss, onFinallyDone: deleteColumns});
       }
     };
     // core of doJoinColumn
@@ -549,7 +559,6 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
       });
     elmts.okButton.on('click',function() {
       transform();
-      dismiss();
     });
     elmts.cancelButton.on('click',function() {
       dismiss();
@@ -574,59 +583,70 @@ DataTableColumnHeaderUI.extendMenu(function(column, columnHeaderUI, menu) {
       {
         id: "core/split-column",
         label: $.i18n('core-views/split-into-col'),
+        icon: 'images/operations/split-columns.svg',
         click: doSplitColumn
       },
       {
         id: "core/join-column",
         label: $.i18n('core-views/join-col'),
-          click : doJoinColumns
-        },
+        icon: 'images/operations/join-columns.svg',
+        click : doJoinColumns
+      },
       {},
       {
         id: "core/add-column",
         label: $.i18n('core-views/add-based-col'),
+        icon: 'images/operations/add-column.svg',
         click: doAddColumn
       },
       {
         id: "core/add-column-by-fetching-urls",
         label: $.i18n('core-views/add-by-urls'),
+        icon: 'images/operations/fetch-urls.svg',
         click: doAddColumnByFetchingURLs
       },
       {
         id: "core/add-column-by-reconciliation",
         label: $.i18n('core-views/add-col-recon-val'),
+        icon: 'images/operations/data-extension.svg',
         click: doAddColumnByReconciliation
       },
       {},
       {
         id: "core/rename-column",
         label: $.i18n('core-views/rename-col'),
+        icon: 'images/operations/rename.svg',
         click: doRenameColumn
       },
       {
         id: "core/remove-column",
         label: $.i18n('core-views/remove-col'),
+        icon: 'images/operations/delete.svg',
         click: doRemoveColumn
       },
       {},
       {
         id: "core/move-column-to-beginning",
         label: $.i18n('core-views/move-to-beg'),
+        icon: 'images/operations/move-first.svg',
         click: function() { doMoveColumnTo(0); }
       },
       {
         id: "core/move-column-to-end",
         label: $.i18n('core-views/move-to-end'),
+        icon: 'images/operations/move-last.svg',
         click: function() { doMoveColumnTo(theProject.columnModel.columns.length - 1); }
       },
       {
         id: "core/move-column-to-left",
         label: $.i18n('core-views/move-to-left'),
+        icon: 'images/operations/move-left.svg',
         click: function() { doMoveColumnBy(-1);}
       },
       {
         id: "core/move-column-to-right",
         label: $.i18n('core-views/move-to-right'),
+        icon: 'images/operations/move-right.svg',
         click: function() { doMoveColumnBy(1); }
       }
     ]

@@ -30,16 +30,21 @@ package com.google.refine.operations.recon;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
-import java.util.Properties;
+import java.io.Serializable;
+import java.util.Optional;
+import java.util.Set;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import com.google.refine.RefineTest;
+import com.google.refine.model.AbstractOperation;
+import com.google.refine.model.ColumnsDiff;
 import com.google.refine.model.Project;
 import com.google.refine.model.recon.StandardReconConfig;
+import com.google.refine.operations.OperationDescription;
 import com.google.refine.operations.OperationRegistry;
-import com.google.refine.operations.recon.ReconUseValuesAsIdentifiersOperation;
 import com.google.refine.util.ParsingUtilities;
 import com.google.refine.util.TestUtils;
 
@@ -47,7 +52,7 @@ public class ReconUseValuesAsIdsOperationTests extends RefineTest {
 
     String json = "{"
             + "\"op\":\"core/recon-use-values-as-identifiers\","
-            + "\"description\":\"Use values as reconciliation identifiers in column ids\","
+            + "\"description\":" + new TextNode(OperationDescription.recon_use_values_as_identifiers_brief("ids")).toString() + ","
             + "\"columnName\":\"ids\","
             + "\"engineConfig\":{\"mode\":\"row-based\",\"facets\":[]},"
             + "\"service\":\"http://localhost:8080/api\","
@@ -66,13 +71,24 @@ public class ReconUseValuesAsIdsOperationTests extends RefineTest {
     }
 
     @Test
+    public void testColumnDependencies() throws Exception {
+        AbstractOperation operation = ParsingUtilities.mapper.readValue(json, ReconUseValuesAsIdentifiersOperation.class);
+        assertEquals(operation.getColumnsDiff(), Optional.of(ColumnsDiff.modifySingleColumn("ids")));
+        assertEquals(operation.getColumnDependencies(), Optional.of(Set.of("ids")));
+    }
+
+    @Test
     public void testUseValuesAsIds() throws Exception {
-        Project project = createCSVProject("ids,v\n"
-                + "Q343,hello\n"
-                + ",world\n"
-                + "http://test.org/entities/Q31,test");
+        Project project = createProject(
+                new String[] { "ids", "v" },
+                new Serializable[][] {
+                        { "Q343", "hello" },
+                        { null, "world" },
+                        { "http://test.org/entities/Q31", "test" }
+                });
         ReconUseValuesAsIdentifiersOperation op = ParsingUtilities.mapper.readValue(json, ReconUseValuesAsIdentifiersOperation.class);
-        op.createProcess(project, new Properties()).performImmediate();
+
+        runOperation(op, project);
 
         assertEquals("Q343", project.rows.get(0).cells.get(0).recon.match.id);
         assertEquals("http://test.org/entities/", project.rows.get(0).cells.get(0).recon.identifierSpace);
