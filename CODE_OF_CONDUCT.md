@@ -58,8 +58,8 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported by contacting the Code of Conduct Committee at code-of-conduct@openrefine.org.
 The committee consists of:
 * Lozanna Rossenova
-* Chris Erdmann
-* Jessica Hardwicke
+* Antoine Beaubien
+* Isao Matsunami
 
 All complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The code of conduct is

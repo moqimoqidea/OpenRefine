@@ -37,15 +37,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.refine.browsing.EngineConfig;
 import com.google.refine.browsing.RowVisitor;
 import com.google.refine.history.Change;
 import com.google.refine.model.Cell;
 import com.google.refine.model.Column;
+import com.google.refine.model.ColumnsDiff;
 import com.google.refine.model.Project;
 import com.google.refine.model.Recon;
 import com.google.refine.model.Recon.Judgment;
@@ -121,6 +125,16 @@ public class ReconMarkNewTopicsOperation extends EngineDependentMassCellOperatio
 
     }
 
+    @Override
+    public Optional<Set<String>> getColumnDependenciesWithoutEngine() {
+        return Optional.of(Set.of(_columnName));
+    }
+
+    @Override
+    public Optional<ColumnsDiff> getColumnsDiff() {
+        return Optional.of(ColumnsDiff.modifySingleColumn(_columnName));
+    }
+
     protected ReconConfig getNewReconConfig(Column column) {
         return column.getReconConfig() != null ? column.getReconConfig()
                 : new StandardReconConfig(
@@ -129,7 +143,6 @@ public class ReconMarkNewTopicsOperation extends EngineDependentMassCellOperatio
                         _schemaSpace,
                         null,
                         false,
-                        10,
                         Collections.emptyList(),
                         0);
     }

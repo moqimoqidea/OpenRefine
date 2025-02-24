@@ -75,7 +75,7 @@ Steering Committee members are invited by OpenRefine's Advisory Committee
 There is currently no Steering Committee as the project is looking for a better format. See discussion [Fwd: Steering committee being disbanded?](https://forum.openrefine.org/t/fwd-steering-committee-being-disbanded/430/) and [Proposition to create OpenRefine Ambassador Council](https://forum.openrefine.org/t/proposition-to-create-openrefine-ambassador-council/462)
 
 ### Advisory Committee
-The Advisory Committee runs the administrative aspect of the project on a day to day basis with the support of Code for Science and Society (CS&S). Its member are bound by the  fiscal sponsorship agreement with Code for Science and Society. They meet once per month with Code for Science and Society.
+The Advisory Committee runs the administrative aspect of the project on a day to day basis with the support of Code for Science and Society (CS&S). Its members are bound by the  fiscal sponsorship agreement with Code for Science and Society. They meet once per month with Code for Science and Society.
 
 It is composed of at least three members. No more than 49 percent of the members of the Advisory Committee may be paid by the project.
 
@@ -90,15 +90,15 @@ Advisory Committee members:
 * Can be part of the Admin team for the project on GitHub
 
 #### Conflict of Interest
-In the event of any conflict of interest (a Committee Member, their family member, or someone with whom the Committee Member has a close academic or employment relationship is involved in a decision), the Committee Member must immediately notify other Committee Members. The Committee Member will be asked to recuse themselves from ongoing conversations, and decision process regarding the Transaction.  
+In the event of any conflict of interest (a Committee Member, their family member, or someone with whom the Committee Member has a close academic or employment relationship is involved in a decision), the Committee Member must immediately notify other Committee Members. The Committee Members will be asked to recuse themselves from ongoing conversations and decision processes regarding the Transaction.  
 
 #### Current list of Advisory Committee members
 * Jan Ainali
-* Antonin Delpeuch
-* [Open Position]
+* Julie Faure-Lacroix
+* Esther Jackson
 
 ### Project Manager
-OpenRefine's Project Manager (paid position) works closely with OpenRefine’s advisory and steering committees, and with its communities of users and contributors.
+OpenRefine's Project Manager (paid position) works closely with OpenRefine’s advisory and steering committees and with its communities of users and contributors.
 
 The Project Manager:
 * Helps to improve OpenRefine's governance and community diversity

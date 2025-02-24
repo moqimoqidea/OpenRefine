@@ -36,17 +36,21 @@ package com.google.refine.operations.recon;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.refine.browsing.EngineConfig;
 import com.google.refine.browsing.RowVisitor;
 import com.google.refine.expr.ExpressionUtils;
 import com.google.refine.history.Change;
 import com.google.refine.model.Cell;
 import com.google.refine.model.Column;
+import com.google.refine.model.ColumnsDiff;
 import com.google.refine.model.Project;
 import com.google.refine.model.Recon;
 import com.google.refine.model.Recon.Judgment;
@@ -140,6 +144,16 @@ public class ReconJudgeSimilarCellsOperation extends EngineDependentMassCellOper
     }
 
     @Override
+    public Optional<Set<String>> getColumnDependenciesWithoutEngine() {
+        return Optional.of(Set.of(_columnName));
+    }
+
+    @Override
+    public Optional<ColumnsDiff> getColumnsDiff() {
+        return Optional.of(ColumnsDiff.modifySingleColumn(_columnName));
+    }
+
+    @Override
     protected RowVisitor createRowVisitor(Project project, List<CellChange> cellChanges, long historyEntryID) throws Exception {
         Column column = project.columnModel.getColumnByName(_columnName);
         ReconConfig reconConfig = column.getReconConfig();
@@ -221,8 +235,10 @@ public class ReconJudgeSimilarCellsOperation extends EngineDependentMassCellOper
                                     recon.judgment = Recon.Judgment.New;
                                     recon.match = null;
                                 } else if (_judgment == Judgment.None) {
-                                    recon.judgment = Recon.Judgment.None;
+                                    recon.judgment = recon.error == null ? Recon.Judgment.None : Recon.Judgment.Error;
                                     recon.match = null;
+                                } else if (_judgment == Judgment.Error) {
+                                    throw new IllegalArgumentException("Cannot manually set judgment to 'error'");
                                 }
 
                                 _dupReconMap.put(cell.recon.id, recon);

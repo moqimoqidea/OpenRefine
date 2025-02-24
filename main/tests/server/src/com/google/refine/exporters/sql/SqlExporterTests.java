@@ -33,9 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.exporters.sql;
 
-import static org.testng.Assert.assertNotEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -45,6 +45,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -52,18 +55,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.refine.ProjectManager;
 import com.google.refine.ProjectManagerStub;
 import com.google.refine.ProjectMetadata;
 import com.google.refine.RefineTest;
 import com.google.refine.browsing.Engine;
-import com.google.refine.exporters.sql.SqlCreateBuilder;
-import com.google.refine.exporters.sql.SqlData;
-import com.google.refine.exporters.sql.SqlExporter;
-import com.google.refine.exporters.sql.SqlInsertBuilder;
 import com.google.refine.model.Cell;
 import com.google.refine.model.Column;
 import com.google.refine.model.ModelException;
@@ -120,17 +116,13 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlWithNonZeroScaleNumericValue() {
+    public void testExportSqlWithNonZeroScaleNumericValue() throws IOException {
         createNonZeroScaleNumericGrid(2, 2);
         String tableName = "sql_table_test";
         String optionsString = createOptionsFromProject(tableName, SqlData.SQL_TYPE_NUMERIC, null).toString();
         when(options.getProperty("options")).thenReturn(optionsString);
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         logger.debug("result = \n" + result);
@@ -166,17 +158,13 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSimpleSql() {
+    public void testExportSimpleSql() throws IOException {
         createGrid(2, 2);
         String tableName = "sql_table_test";
         String optionsString = createOptionsFromProject(tableName, null, null).toString();
         when(options.getProperty("options")).thenReturn(optionsString);
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
 
@@ -187,18 +175,14 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlNoSchema() {
+    public void testExportSqlNoSchema() throws IOException {
         createGrid(2, 2);
         String tableName = "sql_table_test";
         ObjectNode optionsJson = (ObjectNode) createOptionsFromProject(tableName, null, null);
         optionsJson.put("includeStructure", false);
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         Assert.assertNotNull(result);
@@ -212,18 +196,14 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlNoContent() {
+    public void testExportSqlNoContent() throws IOException {
         createGrid(2, 2);
         String tableName = "sql_table_test";
         ObjectNode optionsJson = (ObjectNode) createOptionsFromProject(tableName, null, null);
         optionsJson.put("includeContent", false);
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         Assert.assertNotNull(result);
@@ -237,7 +217,7 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlIncludeSchemaWithDropStmt() {
+    public void testExportSqlIncludeSchemaWithDropStmt() throws IOException {
         createGrid(2, 2);
         String tableName = "sql_table_test";
         ObjectNode optionsJson = (ObjectNode) createOptionsFromProject(tableName, null, null);
@@ -246,11 +226,7 @@ public class SqlExporterTests extends RefineTest {
 
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
 
@@ -287,7 +263,7 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlWithSpecialCharacterInclusiveColumnNames() {
+    public void testExportSqlWithSpecialCharacterInclusiveColumnNames() throws IOException {
         int noOfCols = 4;
         int noOfRows = 1;
         createGridWithSpecialCharacters(noOfRows, noOfCols);
@@ -299,11 +275,7 @@ public class SqlExporterTests extends RefineTest {
         optionsJson.put("trimColumnNames", true);
 
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         logger.debug("\nresult:={} ", result);
@@ -321,7 +293,7 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlWithNullFields() {
+    public void testExportSqlWithNullFields() throws IOException {
         int inNull = 8;
         createGridWithNullFields(3, 3, inNull);
         String tableName = "sql_table_test";
@@ -332,11 +304,7 @@ public class SqlExporterTests extends RefineTest {
 
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
 
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         Assert.assertNotNull(result);
@@ -347,7 +315,7 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlWithNotNullColumns() {
+    public void testExportSqlWithNotNullColumns() throws IOException {
         int noOfCols = 4;
         int noOfRows = 3;
         createGrid(noOfRows, noOfCols);
@@ -358,11 +326,7 @@ public class SqlExporterTests extends RefineTest {
         optionsJson.put("convertNulltoEmptyString", true);
 
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         logger.debug("\nresult:={} ", result);
@@ -375,7 +339,7 @@ public class SqlExporterTests extends RefineTest {
     }
 
     @Test
-    public void testExportSqlWithSingleQuote() {
+    public void testExportSqlWithSingleQuote() throws IOException {
         int noOfCols = 4;
         int noOfRows = 1;
         createGridWithSingleQuote(noOfRows, noOfCols);
@@ -386,11 +350,7 @@ public class SqlExporterTests extends RefineTest {
         optionsJson.put("convertNulltoEmptyString", true);
 
         when(options.getProperty("options")).thenReturn(optionsJson.toString());
-        try {
-            SUT.export(project, options, engine, writer);
-        } catch (IOException e) {
-            Assert.fail();
-        }
+        SUT.export(project, options, engine, writer);
 
         String result = writer.toString();
         logger.debug("\nresult:={} ", result);

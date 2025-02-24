@@ -16,7 +16,7 @@ public interface Manifest {
     public static final String PROPERTY_TYPE = "property";
     public static final String MEDIAINFO_TYPE = "mediainfo";
     public static final int DEFAULT_MAX_EDITS_PER_MINUTE = 60;
-    public static final String DEFAULT_TAG_TEMPLATE = "openrefine-${version}";
+    public static final String DEFAULT_TAG_TEMPLATE = "openrefine";
 
     /**
      * The version of the manifest object, which determines its JSON format.
@@ -124,4 +124,12 @@ public interface Manifest {
      * Returns the template that should be inserted in edit summaries for edits to be tracked by EditGroups.
      */
     String getEditGroupsUrlSchema();
+
+    /**
+     * Returns an entity or property id used in the MediaWiki mandatort properties .
+     * 
+     * @return the entity id
+     */
+    List<String> getMandatoryMediaInfoPropertyIds();
+
 }
