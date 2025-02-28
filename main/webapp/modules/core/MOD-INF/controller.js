@@ -86,6 +86,7 @@ function registerCommands() {
 
   RS.registerCommand(module, "undo-redo", new Packages.com.google.refine.commands.history.UndoRedoCommand());
   RS.registerCommand(module, "apply-operations", new Packages.com.google.refine.commands.history.ApplyOperationsCommand());
+  RS.registerCommand(module, "get-column-dependencies", new Packages.com.google.refine.commands.history.GetColumnDependenciesCommand());
   RS.registerCommand(module, "cancel-processes", new Packages.com.google.refine.commands.history.CancelProcessesCommand());
 
   RS.registerCommand(module, "compute-facets", new Packages.com.google.refine.commands.browsing.ComputeFacetsCommand());
@@ -114,8 +115,6 @@ function registerCommands() {
   RS.registerCommand(module, "split-column", new Packages.com.google.refine.commands.column.SplitColumnCommand());
   RS.registerCommand(module, "reorder-columns", new Packages.com.google.refine.commands.column.ReorderColumnsCommand());
 
-  RS.registerCommand(module, "denormalize", new Packages.com.google.refine.commands.row.DenormalizeCommand());
-
   RS.registerCommand(module, "reconcile", new Packages.com.google.refine.commands.recon.ReconcileCommand());
   RS.registerCommand(module, "recon-match-best-candidates", new Packages.com.google.refine.commands.recon.ReconMatchBestCandidatesCommand());
   RS.registerCommand(module, "recon-mark-new-topics", new Packages.com.google.refine.commands.recon.ReconMarkNewTopicsCommand());
@@ -136,6 +135,9 @@ function registerCommands() {
   RS.registerCommand(module, "annotate-rows", new Packages.com.google.refine.commands.row.AnnotateRowsCommand());
   RS.registerCommand(module, "remove-rows", new Packages.com.google.refine.commands.row.RemoveRowsCommand());
   RS.registerCommand(module, "reorder-rows", new Packages.com.google.refine.commands.row.ReorderRowsCommand());
+  RS.registerCommand(module, "add-rows", new Packages.com.google.refine.commands.row.AddRowsCommand());
+  RS.registerCommand(module, "remove-duplicate-rows", new Packages.com.google.refine.commands.row.RemoveDuplicateRowsCommand());
+  RS.registerCommand(module, "keep-matching-rows", new Packages.com.google.refine.commands.row.KeepMatchingRowsCommand());
 
   RS.registerCommand(module, "get-expression-language-info", new Packages.com.google.refine.commands.expr.GetExpressionLanguageInfoCommand());
   RS.registerCommand(module, "get-expression-history", new Packages.com.google.refine.commands.expr.GetExpressionHistoryCommand());
@@ -148,6 +150,7 @@ function registerCommands() {
   RS.registerCommand(module, "get-all-preferences", new Packages.com.google.refine.commands.GetAllPreferencesCommand());
   RS.registerCommand(module, "set-preference", new Packages.com.google.refine.commands.SetPreferenceCommand());
   RS.registerCommand(module, "open-workspace-dir", new Packages.com.google.refine.commands.OpenWorkspaceDirCommand());
+  RS.registerCommand(module, "open-extensions-dir", new Packages.com.google.refine.commands.OpenExtensionsDirCommand());
   
 }
 
@@ -177,6 +180,9 @@ function registerOperations() {
   OR.registerOperation(module, "row-star", Packages.com.google.refine.operations.row.RowStarOperation);
   OR.registerOperation(module, "row-flag", Packages.com.google.refine.operations.row.RowFlagOperation);
   OR.registerOperation(module, "row-reorder", Packages.com.google.refine.operations.row.RowReorderOperation);
+  OR.registerOperation(module, "row-addition", Packages.com.google.refine.operations.row.RowAdditionOperation);
+  OR.registerOperation(module, "row-duplicate-removal", Packages.com.google.refine.operations.row.RowDuplicatesRemovalOperation);
+  OR.registerOperation(module, "row-keep-matched", Packages.com.google.refine.operations.row.RowKeepMatchedOperation);
 
   OR.registerOperation(module, "recon", Packages.com.google.refine.operations.recon.ReconOperation);
   OR.registerOperation(module, "recon-mark-new-topics", Packages.com.google.refine.operations.recon.ReconMarkNewTopicsOperation);
@@ -321,6 +327,42 @@ function registerImporting() {
   );
 }
 
+function registerExporters() {
+   var ER = Packages.com.google.refine.exporters.ExporterRegistry;
+   ER.registerExporter("csv", new Packages.com.google.refine.exporters.CsvExporter());
+   ER.registerExporter("tsv", new Packages.com.google.refine.exporters.CsvExporter('\t'.charAt(0)));
+   ER.registerExporter("*sv", new Packages.com.google.refine.exporters.CsvExporter());
+   ER.registerExporter("xls", new Packages.com.google.refine.exporters.XlsExporter(false));
+   ER.registerExporter("xlsx", new Packages.com.google.refine.exporters.XlsExporter(true));
+   ER.registerExporter("ods", new Packages.com.google.refine.exporters.OdsExporter());
+   ER.registerExporter("html", new Packages.com.google.refine.exporters.HtmlTableExporter());
+   ER.registerExporter("template", new Packages.com.google.refine.exporters.TemplatingExporter());
+   ER.registerExporter("sql", new Packages.com.google.refine.exporters.sql.SqlExporter());
+}
+
+function registerLanguages() {
+  var MP = Packages.com.google.refine.expr.MetaParser;
+  MP.registerLanguageParser("grel", "General Refine Expression Language (GREL)", Packages.com.google.refine.grel.Parser.grelParser, "value");
+  MP.registerLanguageParser("clojure", "Clojure", new Packages.com.google.refine.expr.ClojureParser(), "value");
+}
+
+function registerDistances() {
+   var DF = Packages.com.google.refine.clustering.knn.DistanceFactory;
+   var VicinoDistance = Packages.com.google.refine.clustering.knn.VicinoDistance;
+   DF.put("levenshtein", new VicinoDistance(new Packages.edu.mit.simile.vicino.distances.LevenshteinDistance()));
+   DF.put("ppm", new VicinoDistance(new Packages.edu.mit.simile.vicino.distances.PPMDistance()));
+}
+
+function registerKeyers() {
+   var KF = Packages.com.google.refine.clustering.binning.KeyerFactory;
+   KF.put("fingerprint", new Packages.com.google.refine.clustering.binning.FingerprintKeyer());
+   KF.put("ngram-fingerprint", new Packages.com.google.refine.clustering.binning.NGramFingerprintKeyer());
+   KF.put("metaphone3", new Packages.com.google.refine.clustering.binning.Metaphone3Keyer());
+   KF.put("cologne-phonetic", new Packages.com.google.refine.clustering.binning.ColognePhoneticKeyer());
+   KF.put("daitch-mokotoff", new Packages.com.google.refine.clustering.binning.DaitchMokotoffKeyer());
+   KF.put("beider-morse", new Packages.com.google.refine.clustering.binning.BeiderMorseKeyer());
+}
+
 /*
  *  This optional function is invoked from the module's init() Java function.
  */
@@ -330,6 +372,10 @@ function init() {
   registerCommands();
   registerOperations();
   registerImporting();
+  registerExporters();
+  registerLanguages();
+  registerDistances();
+  registerKeyers();
 
   var commonModules = [
       "3rdparty/jquery.js",
@@ -356,9 +402,7 @@ function init() {
     "index/scripts",
     module,
     commonModules.concat([
-      "3rdparty/date.js",
       "3rdparty/tablesorter/jquery.tablesorter.js",
-      "3rdparty/moment-with-locales.js",
       "3rdparty/select2/select2.js",
 
       "scripts/util/misc.js",
@@ -371,13 +415,17 @@ function init() {
       "scripts/util/dialog.js",
       "scripts/util/dom.js",
       "scripts/util/encoding.js",
+      "scripts/util/host.js",
       "scripts/util/sign.js",
+      "scripts/util/filter-lists.js",
+      "scripts/util/filter-lists-search.js",
 
       "scripts/index.js",
       "scripts/index/create-project-ui.js",
       "scripts/index/open-project-ui.js",
       "scripts/index/import-project-ui.js",
       "scripts/index/lang-settings-ui.js",
+      "scripts/index/manage-extensions-ui.js",
 
       "scripts/index/default-importing-controller/controller.js",
       "scripts/index/default-importing-controller/file-selection-panel.js",
@@ -412,7 +460,7 @@ function init() {
       "styles/common.css",
       "styles/util/dialog.css",
       "styles/util/encoding.css",
-      
+
       "styles/index.css",
       "styles/index/create-project-ui.css",
       "styles/index/open-project-ui.css",
@@ -436,7 +484,6 @@ function init() {
     module,
     commonModules.concat([
       "externals/suggest/suggest-4_3a.js",
-      "3rdparty/date.js",
       "scripts/util/i18n.js",
       "scripts/util/csrf.js",
       "scripts/project.js",
@@ -461,6 +508,7 @@ function init() {
       "scripts/project/summary-bar.js",
       "scripts/project/exporters.js",
       "scripts/project/scripting.js",
+      "scripts/project/operation-icons.js",
 
       "scripts/facets/facet.js",
       "scripts/facets/list-facet.js",
@@ -486,8 +534,11 @@ function init() {
 
       "scripts/reconciliation/recon-manager.js",
       "scripts/reconciliation/recon-dialog.js",
+      "scripts/reconciliation/recon-dialog-2.js",
       "scripts/reconciliation/standard-service-panel.js",
 
+      "scripts/dialogs/extract-operations-dialog.js",
+      "scripts/dialogs/apply-operations-dialog.js",
       "scripts/dialogs/expression-preview-dialog.js",
       "scripts/dialogs/add-column-by-reconciliation.js",
       "scripts/dialogs/clustering-dialog.js",
@@ -499,6 +550,9 @@ function init() {
       "scripts/dialogs/sql-exporter-dialog.js",
       "scripts/dialogs/expression-column-dialog.js",
       "scripts/dialogs/http-headers-dialog.js",
+      "scripts/dialogs/clustering-functions-dialog.js",
+      "scripts/dialogs/add-rows-dialog.js",
+      "scripts/dialogs/remove-duplicate-rows-dialog.js"
     ])
   );
 
@@ -530,6 +584,7 @@ function init() {
       "styles/views/data-table-view.css",
       "styles/views/column-join.css",
 
+      "styles/dialogs/clustering-functions-dialog.css",
       "styles/dialogs/expression-preview-dialog.css",
       "styles/dialogs/clustering-dialog.css",
       "styles/dialogs/scatterplot-dialog.css",
@@ -537,9 +592,11 @@ function init() {
       "styles/dialogs/custom-tabular-exporter-dialog.css",
       "styles/dialogs/sql-exporter-dialog.css",
       "styles/dialogs/recon-service-selection-dialog.css",
+      "styles/dialogs/confirm-history-erasure-dialog.less",
       "styles/reconciliation/recon-dialog.css",
       "styles/reconciliation/standard-service-panel.css",
       "styles/reconciliation/add-column-by-reconciliation.css",
+      "styles/dialogs/remove-duplicate-rows-dialog.css"
     ]
   );
 
@@ -576,7 +633,7 @@ function process(path, request, response) {
     butterfly.sendString(
       request, 
       response, 
-      "var ModuleWirings = " + butterfly.toJSONString(wirings) + ";", 
+      "var ModuleWirings = " + JSON.stringify(wirings) + ";",
       encoding, 
       "text/javascript"
     );
@@ -651,11 +708,18 @@ function process(path, request, response) {
         for (var key in styles) {
           if (styles.hasOwnProperty(key)) {
             var qualifiedPath = styles[key];
-            styleInjection.push(
-                '<link type="text/css" rel="stylesheet" href="' + qualifiedPath.fullPath.substring(1) + '" />');
+            var styleSource;
+            if (qualifiedPath.fullPath.substring(1).startsWith("extension/")) {
+                styleSource = qualifiedPath.fullPath.split("/")[2];
+            } else {
+                styleSource = "core";
+            }
+
+
+            styleInjection.push('@import url(' + qualifiedPath.fullPath.substring(1) + ') layer(' + styleSource + ');');
           }
         }
-        context.styleInjection = styleInjection.join("\n");
+        context.styleInjection = '<style>@layer core;\n' + styleInjection.join("\n") + '</style>';
 
         if (bundle) {
           context.scriptInjection = '<script type="text/javascript" src="' + path + '-bundle.js"></script>';
@@ -698,8 +762,8 @@ function process(path, request, response) {
             });
           }
           
-          context.encodingJson = butterfly.toJSONString(encodings);
-          context.defaultEncoding = butterfly.toJSONString(Packages.java.nio.charset.Charset.defaultCharset().name());
+          context.encodingJson = JSON.stringify(encodings);
+          context.defaultEncoding = JSON.stringify(Packages.java.nio.charset.Charset.defaultCharset().name());
         }
         
         send(request, response, path + ".vt", context);

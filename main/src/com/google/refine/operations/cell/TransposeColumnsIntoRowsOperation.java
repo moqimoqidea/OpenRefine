@@ -35,17 +35,22 @@ package com.google.refine.operations.cell;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.lang.Validate;
+
 import com.google.refine.expr.ExpressionUtils;
 import com.google.refine.history.HistoryEntry;
 import com.google.refine.model.AbstractOperation;
 import com.google.refine.model.Cell;
 import com.google.refine.model.Column;
+import com.google.refine.model.ColumnsDiff;
 import com.google.refine.model.Project;
 import com.google.refine.model.Row;
 import com.google.refine.model.changes.MassRowColumnChange;
@@ -156,6 +161,15 @@ public class TransposeColumnsIntoRowsOperation extends AbstractOperation {
     }
 
     @Override
+    public void validate() {
+        Validate.notNull(_startColumnName, "Missing name of the start column");
+        if (_combinedColumnName == null) {
+            Validate.notNull(_keyColumnName, "Missing name of the key column");
+            Validate.notNull(_valueColumnName, "Missing name of the value column");
+        }
+    }
+
+    @Override
     protected String getBriefDescription(Project project) {
         return getBriefDescription();
     }
@@ -177,6 +191,16 @@ public class TransposeColumnsIntoRowsOperation extends AbstractOperation {
                         _valueColumnName);
             }
         }
+    }
+
+    @Override
+    public Optional<Set<String>> getColumnDependencies() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ColumnsDiff> getColumnsDiff() {
+        return Optional.empty();
     }
 
     @Override
